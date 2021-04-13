@@ -1,4 +1,4 @@
-﻿# ConvertTo-Jpeg - Converts RAW (and other) image files to the widely-supported JPEG format
+# ConvertTo-Jpeg - Converts RAW (and other) image files to the widely-supported JPEG format
 # https://github.com/DavidAnson/ConvertTo-Jpeg
 
 Param (
@@ -86,22 +86,21 @@ Process
             }
             $bitmap = AwaitOperation ($decoder.GetSoftwareBitmapAsync()) ([Windows.Graphics.Imaging.SoftwareBitmap])
 
+            $propertySet = [System.Collections.Generic.Dictionary[String,Windows.Graphics.Imaging.BitmapTypedValue]] (New-Object Windows.Graphics.Imaging.BitmapPropertySet);
+            $qualityValue = New-Object Windows.Graphics.Imaging.BitmapTypedValue(0.75, [Windows.Foundation.PropertyType]::Single);
+            $propertySet.Add("ImageQuality", $qualityValue);
+            
             # Write SoftwareBitmap to output file
             $outputFileName = $inputFile.Name + ".jpg";
             $outputFile = AwaitOperation ($inputFolder.CreateFileAsync($outputFileName, [Windows.Storage.CreationCollisionOption]::ReplaceExisting)) ([Windows.Storage.StorageFile])
             $outputStream = AwaitOperation ($outputFile.OpenAsync([Windows.Storage.FileAccessMode]::ReadWrite)) ([Windows.Storage.Streams.IRandomAccessStream])
-            $encoder = AwaitOperation ([Windows.Graphics.Imaging.BitmapEncoder]::CreateAsync([Windows.Graphics.Imaging.BitmapEncoder]::JpegEncoderId, $outputStream)) ([Windows.Graphics.Imaging.BitmapEncoder])
+            $encoder = AwaitOperation ([Windows.Graphics.Imaging.BitmapEncoder]::CreateAsync([Windows.Graphics.Imaging.BitmapEncoder]::JpegEncoderId, $outputStream, $propertySet)) ([Windows.Graphics.Imaging.BitmapEncoder])
             $encoder.SetSoftwareBitmap($bitmap)
             $encoder.IsThumbnailGenerated = $true
 
             # Do it
             AwaitAction ($encoder.FlushAsync())
             Write-Host " -> $outputFileName"
-        }
-        catch
-        {
-            # Report full details
-            throw $_.Exception.ToString()
         }
         finally
         {
